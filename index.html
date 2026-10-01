@@ -102,7 +102,10 @@ footer b{color:var(--gold)}
         <div class="kv"><div class="k">GPU / Renderer</div><div class="v" id="gpu"></div></div>
         <div class="kv"><div class="k">Battery</div><div class="v" id="battery"></div></div>
         <div class="kv"><div class="k">Touch Support</div><div class="v" id="touch"></div></div>
-        <div class="kv"><div class="k">Canvas Fingerprint</div><div class="v" id="canvas"></div>
+        <div class="kv"><div class="k">Canvas Fingerprint</div><div class="v" id="canvas"></div></div>
+        <div class="kv"><div class="k">AudioContext Fingerprint</div><div class="v" id="audiofp"></div></div>
+        <div class="kv"><div class="k">Codecs Supported</div><div class="v" id="codecs"></div></div>
+        <div class="kv"><div class="k">Anti-Fingerprinting</div><div class="v" id="antifp"></div></div>
       </div>
     </div>
 
@@ -249,6 +252,40 @@ footer b{color:var(--gold)}
         '<div class="factor"><div><div class="f-name">'+f.name+'</div><div class="f-detail">'+(f.detail||'')+'</div></div><span class="badge '+cls+'">'+lbl+'</span></div>');
     }
   })();
+  // AudioContext fingerprint
+  let audiofp='unavailable';
+  try{
+    const AC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    const ctx=new AC(1,5000,44100);
+    const osc=ctx.createOscillator();osc.type='triangle';osc.frequency.value=10000;
+    const comp=ctx.createDynamicsCompressor();
+    osc.connect(comp);comp.connect(ctx.destination);osc.start(0);
+    ctx.startRendering().then(buf=>{
+      let sum=0;
+      for(let i=4500;i<5000;i++)sum+=Math.abs(buf.getChannelData(0)[i]);
+      const el=document.getElementById('audiofp');if(el)el.textContent=(sum*1e6).toFixed(2);
+    });
+  }catch(e){}
+  const v=document.createElement('video'),a=document.createElement('audio');
+  const codecs=[];
+  try{
+    if(v.canPlayType('video/mp4; codecs="avc1.42E01E"'))codecs.push('H.264');
+    if(v.canPlayType('video/webm; codecs="vp9"'))codecs.push('VP9');
+    if(v.canPlayType('video/webm; codecs="av01.0.05M.08"'))codecs.push('AV1');
+    if(a.canPlayType('audio/mp4; codecs="mp4a.40.2"'))codecs.push('AAC');
+    if(a.canPlayType('audio/ogg; codecs="opus"'))codecs.push('Opus');
+  }catch(e){}
+  let antifp=[];
+  try{
+    const c2=document.createElement('canvas').getContext('2d');
+    c2.fillText('test',0,0);
+    if(c2.toDataURL().length<200)antifp.push('canvas noise suspected');
+  }catch(e){antifp.push('canvas blocked')}
+  if(navigator.hardwareConcurrency===undefined)antifp.push('cores hidden');
+  if(navigator.deviceMemory===undefined)antifp.push('RAM hidden');
+  if(antifp.length===0)antifp.push('none detected ✓');
+  const cdEl=document.getElementById('codecs');if(cdEl)cdEl.textContent=codecs.join(', ')||'none';
+  const anEl=document.getElementById('antifp');if(anEl){anEl.textContent=antifp.join(' · ');anEl.style.color=antifp[0].indexOf('none')===0?'var(--green)':'var(--gold)';}
 
 </script>
 </body>
