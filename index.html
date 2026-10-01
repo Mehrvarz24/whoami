@@ -266,14 +266,14 @@ footer b{color:var(--gold)}
       const el=document.getElementById('audiofp');if(el)el.textContent=(sum*1e6).toFixed(2);
     });
   }catch(e){}
-  const v=document.createElement('video'),a=document.createElement('audio');
+  const vEl=document.createElement('video'),aEl=document.createElement('audio');
   const codecs=[];
   try{
-    if(v.canPlayType('video/mp4; codecs="avc1.42E01E"'))codecs.push('H.264');
-    if(v.canPlayType('video/webm; codecs="vp9"'))codecs.push('VP9');
-    if(v.canPlayType('video/webm; codecs="av01.0.05M.08"'))codecs.push('AV1');
-    if(a.canPlayType('audio/mp4; codecs="mp4a.40.2"'))codecs.push('AAC');
-    if(a.canPlayType('audio/ogg; codecs="opus"'))codecs.push('Opus');
+    if(vEl.canPlayType('video/mp4; codecs="avc1.42E01E"'))codecs.push('H.264');
+    if(vEl.canPlayType('video/webm; codecs="vp9"'))codecs.push('VP9');
+    if(vEl.canPlayType('video/webm; codecs="av01.0.05M.08"'))codecs.push('AV1');
+    if(aEl.canPlayType('audio/mp4; codecs="mp4a.40.2"'))codecs.push('AAC');
+    if(aEl.canPlayType('audio/ogg; codecs="opus"'))codecs.push('Opus');
   }catch(e){}
   let antifp=[];
   try{
