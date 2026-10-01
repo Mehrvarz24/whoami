@@ -106,141 +106,150 @@ footer b{color:var(--gold)}
       </div>
     </div>
 
-    <footer>Powered by <b>Atlas Books</b> tunnel · data sources: ipwho.is / ip-api.com</footer>
+    <footer>GitHub Pages edition — fully client-side · IP data: ipwho.is · Server edition: whoami.miors.art</footer>
   </div>
 </div>
 <script>
-function canvasHash(){
-  try{
-    const c=document.createElement('canvas');c.width=220;c.height=60;
-    const x=c.getContext('2d');x.textBaseline='top';x.font="16px 'Arial'";
-    x.fillStyle='#c9a962';x.fillRect(0,0,220,60);
-    x.fillStyle='#1a1a1a';x.fillText('fingerprint \u2713 \ud83d\udd12',4,18);
-    x.fillStyle='rgba(240,233,216,.6)';x.fillText('whoami.miors.art',6,40);
-    x.beginPath();x.arc(190,30,18,0,6.3);x.strokeStyle='#f0e9d8';x.stroke();
-    const h=hash(c.toDataURL());return h;
-  }catch(e){return 'unavailable'}
-}
-function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0}return '0x'+((h>>>0).toString(16).toUpperCase().padStart(8,'0'))+' (lightweight)'}
-function parseUA(ua){
-  let b='Unknown',o='Unknown';
-  if(/Edg\//.test(ua))b='Edge';else if(/OPR|Opera/.test(ua))b='Opera';else if(/Firefox\//.test(ua))b='Firefox';
-  else if(/Chrome\//.test(ua))b='Chrome';else if(/Safari\//.test(ua))b='Safari';
-  if(/Windows/.test(ua))o='Windows';else if(/Android/.test(ua))o='Android';else if(/iPhone|iPad/.test(ua))o='iOS';
-  else if(/Mac OS X/.test(ua))o='macOS';else if(/Linux/.test(ua))o='Linux';
-  return b+' on '+o;
-}
-function send(api,headers){
-  return fetch('/api/info',{headers:headers}).then(r=>r.json());
-}
-(async()=>{
-  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
-  const scr=window.screen.width+'x'+window.screen.height+' @'+(window.devicePixelRatio||1)+'x, '+window.screen.colorDepth+'-bit';
-  const canvas=canvasHash();
-  // WebRTC leak probe
-  let webrtcReal='';
-  try{
-    const p=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-    p.createDataChannel('x');
-    const ip=await new Promise(res=>{
-      const t=setTimeout(()=>res(''),2500);
-      p.onicecandidate=e=>{
-        if(e.candidate){const m=/([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
-          if(m && !/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.)/.test(m[1])){clearTimeout(t);res(m[1])}}
-        else res('');
-      };
-      p.createOffer().then(o=>p.setLocalDescription(o));
-    });
-    webrtcReal=ip;p.close();
-  }catch(e){}
-  const dnt=(navigator.doNotTrack==='1'||window.doNotTrack==='1')?'1':'';
-  // Hardware info
-  const cores=navigator.hardwareConcurrency?navigator.hardwareConcurrency+' cores':'Hidden/unsupported';
-  const ram=navigator.deviceMemory?navigator.deviceMemory+' GB (approx)':'Hidden/unsupported';
-  const plat=navigator.platform||'Unknown';
-  const touch=('ontouchstart' in window||navigator.maxTouchPoints>0)?('Yes — '+navigator.maxTouchPoints+' touch points'):'No';
-  const mobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'📱 Mobile':'💻 Desktop';
-  let gpu='Hidden/unsupported';
-  let battery='Hidden/unsupported';
-  try{
-    const gl=document.createElement('canvas').getContext('webgl');
-    const dbg=gl.getExtension('WEBGL_debug_renderer_info');
-    if(dbg)gpu=gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
-    else gpu=gl.getParameter(gl.RENDERER);
-  }catch(e){}
-  try{
-    navigator.getBattery().then(b=>{
-      const el=document.getElementById('battery');
-      el.textContent=Math.round(b.level*100)+'% '+(b.charging?'(charging ⚡)':'(discharging)');
-      if(!b.charging&&b.level<1)el.style.color='var(--gold)';
-    });
-  }catch(e){}
-  let data={};
-  try{
-    data=await send('/api/info',{
-      'X-Client-Timezone':tz,'X-Client-Screen':scr,'X-Client-Canvas':canvas,
-      'X-Client-Webrtc-Real-Ip':webrtcReal||'none','X-Client-Webrtc-Ip':webrtcReal||'none'
-    });
-  }catch(e){document.getElementById('loading').textContent='Error contacting the API.';return}
-  const g=data.geo,c=data.client;
-  document.getElementById('loading').style.display='none';
-  document.getElementById('content').style.display='block';
-  document.getElementById('score').textContent=data.score;
-  document.getElementById('scoreBar').style.width=Math.max(data.score,3)+'%';
-  document.getElementById('scoreLabel').textContent=data.score<20?'Low risk — looks like a normal connection':
-    data.score<45?'Moderate risk — some inconsistencies detected':
-    data.score<70?'High risk — likely proxy/VPN usage':'Very high — strongly flagged as proxy/VPN';
-  const v=document.getElementById('verdict');
-  const vpn=!!(g.hosting||g.proxy_flag||data.factors.some(f=>f.risk>=30));
-  v.textContent=vpn?'⚠ Proxy / VPN usage likely detected':'✓ No strong proxy indicators';
-  v.style.color=vpn?'var(--gold)':'var(--green)';
-  document.getElementById('ip').textContent=data.ip;
   const F=(id,v)=>{const el=document.getElementById(id);el.textContent=v||'—'};
-  F('country',[g.flag,(g.country||'?')+(g.country_code?' ('+g.country_code+')':'')].filter(Boolean).join(' '));
-  F('iptype',g.iptype);
-  F('capital',g.capital);
-  F('continent',g.continent);
-  F('region',g.region+(g.region_code?' ('+g.region_code+')':''));
-  F('city',g.city);
-  F('postal',g.postal);
-  F('fulladdr',[[g.postal,g.city,g.region].filter(Boolean).join(', '),g.country].filter(Boolean).join(' — '));
-  F('coords',(g.latitude!=null&&g.longitude!=null)?g.latitude.toFixed(4)+', '+g.longitude.toFixed(4):'');
-  F('isptd',g.isp);
-  F('org',g.org);
-  F('asn',g.asn?'AS'+g.asn:'');
-  F('iptz2',g.timezone);
-  F('ccode',g.calling_code?'+'+g.calling_code:'');
-  F('currency',g.currency);
-  const ml=document.getElementById('maplink');
-  if(g.latitude!=null&&g.longitude!=null)ml.href='https://www.openstreetmap.org/?mlat='+g.latitude+'&mlon='+g.longitude+'#map=11/'+g.latitude+'/'+g.longitude;
-  else ml.style.display='none';
-  const vpnEl=document.getElementById('vpn');
-  vpnEl.textContent=vpn?'Yes'+(g.proxy_flag?' (flagged)':' (datacenter ISP)')+(vpn&&webrtcReal&&webrtcReal!==data.ip?' + WebRTC shows real IP':''):'No';
-  vpnEl.style.color=vpn?'var(--red)':'var(--green)';
-  document.getElementById('ua').textContent=parseUA(c.ua)+' — '+c.ua;
-  document.getElementById('lang').textContent=c.language||'Unknown';
-  document.getElementById('tz').textContent=tz||'Unknown';
-  document.getElementById('iptz').textContent=g.timezone||'Unknown';
-  document.getElementById('screen').textContent=c.screen||scr;
-  document.getElementById('dnt').textContent=c.dnt==='1'?'Enabled (DNT: 1)':'Not set';
-  const wEl=document.getElementById('webrtc');
-  wEl.textContent=c.webrtc_leak?('LEAK — real IP visible: '+c.webrtc_leak):'No leak detected';
-  wEl.style.color=c.webrtc_leak?'var(--red)':'var(--green)';
-  document.getElementById('canvas').textContent=c.canvas||canvas;
-  document.getElementById('device').textContent=mobile+' — '+plat;
-  document.getElementById('cores').textContent=cores;
-  document.getElementById('ram').textContent=ram;
-  document.getElementById('gpu').textContent=gpu;
-  document.getElementById('touch').textContent=touch;
-  const fx=document.getElementById('factors');
-  fx.innerHTML='';
-  for(const f of data.factors){
-    const cls=f.risk>=25?'b-bad':f.risk>0?'b-warn':'b-safe';
-    const lbl=f.risk>=25?'HIGH RISK +'+f.risk:f.risk>0?'MINOR +'+f.risk:'OK +0';
-    fx.insertAdjacentHTML('beforeend',
-      `<div class="factor"><div><div class="f-name">${f.name}</div><div class="f-detail">${f.detail||''}</div></div><span class="badge ${cls}">${lbl}</span></div>`);
+  function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0}return '0x'+((h>>>0).toString(16).toUpperCase().padStart(8,'0'))}
+  function canvasHash(){
+    try{
+      const c=document.createElement('canvas');c.width=220;c.height=60;
+      const x=c.getContext('2d');x.textBaseline='top';x.font="16px 'Arial'";
+      x.fillStyle='#c9a962';x.fillRect(0,0,220,60);
+      x.fillStyle='#1a1a1a';x.fillText('fingerprint \u2713 \ud83d\udd12',4,18);
+      x.fillStyle='rgba(240,233,216,.6)';x.fillText('whoami',6,40);
+      x.beginPath();x.arc(190,30,18,0,6.3);x.strokeStyle='#f0e9d8';x.stroke();
+      return hash(c.toDataURL());
+    }catch(e){return 'unavailable'}
   }
-})();
+  function parseUA(ua){
+    let b='Unknown',o='Unknown';
+    if(/Edg\//.test(ua))b='Edge';else if(/OPR|Opera/.test(ua))b='Opera';else if(/Firefox\//.test(ua))b='Firefox';
+    else if(/Chrome\//.test(ua))b='Chrome';else if(/Safari\//.test(ua))b='Safari';
+    if(/Windows/.test(ua))o='Windows';else if(/Android/.test(ua))o='Android';else if(/iPhone|iPad/.test(ua))o='iOS';
+    else if(/Mac OS X/.test(ua))o='macOS';else if(/Linux/.test(ua))o='Linux';
+    return b+' on '+o;
+  }
+  (async()=>{
+    const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+    const scr=window.screen.width+'x'+window.screen.height+' @'+(window.devicePixelRatio||1)+'x, '+window.screen.colorDepth+'-bit';
+    const canvas=canvasHash();
+    let webrtcReal='';
+    try{
+      const p=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+      p.createDataChannel('x');
+      const ip=await new Promise(res=>{
+        const t=setTimeout(()=>res(''),2500);
+        p.onicecandidate=e=>{
+          if(e.candidate){const m=/([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
+            if(m && !/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.)/.test(m[1])){clearTimeout(t);res(m[1])}}
+          else res('');
+        };
+        p.createOffer().then(o=>p.setLocalDescription(o));
+      });
+      webrtcReal=ip;p.close();
+    }catch(e){}
+    const dnt=(navigator.doNotTrack==='1'||window.doNotTrack==='1')?'1':'';
+    const cores=navigator.hardwareConcurrency?navigator.hardwareConcurrency+' cores':'Hidden/unsupported';
+    const ram=navigator.deviceMemory?navigator.deviceMemory+' GB (approx)':'Hidden/unsupported';
+    const plat=navigator.platform||'Unknown';
+    const touch=('ontouchstart' in window||navigator.maxTouchPoints>0)?('Yes — '+navigator.maxTouchPoints+' touch points'):'No';
+    const mobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'📱 Mobile':'💻 Desktop';
+    let gpu='Hidden/unsupported';
+    try{
+      const gl=document.createElement('canvas').getContext('webgl');
+      const dbg=gl.getExtension('WEBGL_debug_renderer_info');
+      gpu=dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);
+    }catch(e){}
+    let g={};
+    try{
+      const r=await fetch('https://ipwho.is/');
+      const d=await r.json();
+      if(!d.error){
+        const conn=d.connection||{};
+        g={ip:d.ip,country:d.country,country_code:d.country_code,city:d.city,region:d.region,region_code:d.region_code,
+           postal:d.postal,latitude:d.latitude,longitude:d.longitude,timezone:(d.timezone||{}).id||'',
+           continent:d.continent,capital:d.capital,iptype:d.type,flag:(d.flag||{}).emoji||'',
+           calling_code:conn.calling_code||'',currency:(conn.currency||{}).code||'',asn:conn.asn||'',isp:conn.isp||'',org:conn.org||''};
+      }
+    }catch(e){}
+    const factors=[];
+    const add=(name,risk,detail)=>factors.push({name,risk,detail});
+    const cc=(g.country_code||'').toUpperCase();
+    const lang=(navigator.language||(navigator.languages&&navigator.languages[0])||'').toLowerCase();
+    const langPrimary=lang.split(',')[0].split('-')[0].split(';')[0];
+    const LANG_CC={fa:['IR'],en:['US','GB','CA','AU','IE','NZ','ZA'],de:['DE','AT','CH'],fr:['FR','BE','CA','CH'],ar:['SA','AE','EG','IQ','QA','KW','OM','JO','LB','MA','DZ','TN','LY','SD','YE','BH'],tr:['TR'],ru:['RU','BY','KZ'],es:['ES','MX','AR','CL','CO'],zh:['CN','TW','SG','HK'],it:['IT'],nl:['NL','BE'],pt:['PT','BR'],ja:['JP'],ko:['KR'],hi:['IN'],ur:['PK'],ps:['AF'],sv:['SE'],pl:['PL'],uk:['UA']};
+    const hostingKw=['amazon','aws','google','digitalocean','hetzner','ovh','linode','vultr','azure','oracle','contabo','m247','choopa','leaseweb','datacenter','hosting','cloud','vps','server','tencent'];
+    const isHosting=hostingKw.some(k=>((g.isp||'')+' '+(g.org||'')).toLowerCase().includes(k));
+    if(g.timezone&&tz){
+      if(g.timezone!==tz)add('Timezone mismatch',35,'Browser: '+tz+' — IP: '+g.timezone+' ('+cc+')');
+      else add('Timezone consistent',0,tz);
+    }else add('Timezone unknown',5,'browser='+(tz||'?')+' ip='+(g.timezone||'?'));
+    if(lang&&cc){
+      const expected=LANG_CC[langPrimary];
+      if(expected&&!expected.includes(cc)&&langPrimary!=='en')add('Language/country mismatch',30,'Language: '+lang+' — IP country: '+cc);
+      else if(langPrimary==='en'&&!expected)add('English language (universal)',8,'Language: en — low signal');
+      else add('Language consistent',0,lang);
+    }else add('Language unknown',4,lang||'?');
+    if(isHosting)add('Datacenter ISP / proxy flag',30,(g.isp||g.org||'Unknown'));
+    else if(g.isp)add('Residential ISP (likely)',0,g.isp);
+    if(webrtcReal&&webrtcReal!==g.ip)add('WebRTC leak (real IP)',15,'IP via WebRTC: '+webrtcReal);
+    else add('No WebRTC leak',0,'Real IP not exposed');
+    if(!dnt)add('Do-Not-Track disabled',3,'DNT header not sent');
+    const total=Math.min(100,factors.reduce((s,f)=>s+f.risk,0));
+    document.getElementById('loading').style.display='none';
+    document.getElementById('content').style.display='block';
+    document.getElementById('score').textContent=total;
+    document.getElementById('scoreBar').style.width=Math.max(total,3)+'%';
+    document.getElementById('scoreLabel').textContent=total<20?'Low risk — looks like a normal connection':
+      total<45?'Moderate risk — some inconsistencies detected':
+      total<70?'High risk — likely proxy/VPN usage':'Very high — strongly flagged as proxy/VPN';
+    const vpn=!!(isHosting||factors.some(f=>f.risk>=30));
+    const v=document.getElementById('verdict');
+    v.textContent=vpn?'⚠ Proxy / VPN usage likely detected':'✓ No strong proxy indicators';
+    v.style.color=vpn?'var(--gold)':'var(--green)';
+    F('ip',g.ip||'—');
+    F('country',[g.flag,(g.country||'?')+(g.country_code?' ('+g.country_code+')':'')].filter(Boolean).join(' '));
+    F('iptype',g.iptype);F('capital',g.capital);F('continent',g.continent);
+    F('region',g.region+(g.region_code?' ('+g.region_code+')':''));
+    F('city',g.city);F('postal',g.postal);
+    F('fulladdr',[[g.postal,g.city,g.region].filter(Boolean).join(', '),g.country].filter(Boolean).join(' — '));
+    F('coords',(g.latitude!=null&&g.longitude!=null)?g.latitude.toFixed(4)+', '+g.longitude.toFixed(4):'');
+    F('isptd',g.isp);F('org',g.org);F('asn',g.asn?'AS'+g.asn:'');F('iptz2',g.timezone);
+    F('ccode',g.calling_code?'+'+g.calling_code:'');F('currency',g.currency);
+    const ml=document.getElementById('maplink');
+    if(g.latitude!=null&&g.longitude!=null)ml.href='https://www.openstreetmap.org/?mlat='+g.latitude+'&mlon='+g.longitude+'#map=11/'+g.latitude+'/'+g.longitude;
+    else ml.style.display='none';
+    const vpnEl=document.getElementById('vpn');
+    vpnEl.textContent=vpn?'Yes (datacenter ISP / mismatch)':'No';
+    vpnEl.style.color=vpn?'var(--red)':'var(--green)';
+    F('ua',parseUA(navigator.userAgent)+' — '+navigator.userAgent);
+    F('lang',navigator.language||'Unknown');
+    F('tz',tz||'Unknown');
+    F('iptz',g.timezone||'Unknown');
+    F('screen',scr);
+    F('dnt',dnt==='1'?'Enabled (DNT: 1)':'Not set');
+    const wEl=document.getElementById('webrtc');
+    wEl.textContent=(webrtcReal&&webrtcReal!==g.ip)?('LEAK — real IP visible: '+webrtcReal):'No leak detected';
+    wEl.style.color=(webrtcReal&&webrtcReal!==g.ip)?'var(--red)':'var(--green)';
+    F('canvas',canvas);
+    F('device',mobile+' — '+plat);F('cores',cores);F('ram',ram);F('gpu',gpu);F('touch',touch);
+    try{
+      navigator.getBattery().then(b=>{
+        document.getElementById('battery').textContent=Math.round(b.level*100)+'% '+(b.charging?'(charging ⚡)':'(discharging)');
+      });
+    }catch(e){}
+    const fx=document.getElementById('factors');
+    fx.innerHTML='';
+    for(const f of factors){
+      const cls=f.risk>=25?'b-bad':f.risk>0?'b-warn':'b-safe';
+      const lbl=f.risk>=25?'HIGH RISK +'+f.risk:f.risk>0?'MINOR +'+f.risk:'OK +0';
+      fx.insertAdjacentHTML('beforeend',
+        '<div class="factor"><div><div class="f-name">'+f.name+'</div><div class="f-detail">'+(f.detail||'')+'</div></div><span class="badge '+cls+'">'+lbl+'</span></div>');
+    }
+  })();
+
 </script>
 </body>
 </html>
