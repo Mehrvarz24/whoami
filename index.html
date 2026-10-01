@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhoAmI — Browser Fingerprint &amp; Privacy Score</title>
+<style>
+:root{--bg:#121212;--panel:#1a1a1a;--panel2:#222220;--cream:#f0e9d8;--muted:#9a937f;--gold:#c9a962;--gold2:#e6cf9a;--red:#d96c5f;--green:#8fbf7f;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--cream);font-family:ui-sans-serif,system-ui,'Segoe UI',Arial,sans-serif;min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-weight:600;font-size:1.7rem;letter-spacing:.5px;text-align:center;color:var(--gold)}
+h1 span{color:var(--cream)}
+.sub{text-align:center;color:var(--muted);margin:.4rem 0 2rem;font-size:.95rem}
+.card{background:var(--panel);border:1px solid #2e2c26;border-radius:14px;padding:1.4rem 1.6rem;margin-bottom:1.2rem;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.card h2{font-size:1.05rem;color:var(--gold);font-weight:600;margin-bottom:1rem;letter-spacing:.4px;text-transform:uppercase}
+.score-wrap{text-align:center}
+.score-num{font-size:4.2rem;font-weight:700;color:var(--gold);line-height:1}
+.score-label{color:var(--muted);margin-top:.3rem;font-size:.95rem}
+.bar{height:10px;background:#2a2822;border-radius:6px;margin:1.2rem auto 0;max-width:520px;overflow:hidden}
+.bar>div{height:100%;background:linear-gradient(90deg,var(--green),var(--gold) 55%,var(--red));border-radius:6px;transition:width .8s ease}
+.verdict{margin-top:.9rem;font-size:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.9rem}
+.iptable{width:100%;border-collapse:collapse}
+.iptable td{padding:.55rem .7rem;border-bottom:1px solid #26241f;font-size:.9rem;word-break:break-all}
+.iptable tr:last-child td{border-bottom:none}
+.iptable td.k{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;width:42%}
+.kv{background:var(--panel2);border-radius:10px;padding:.7rem .9rem}
+.kv .k{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;margin-bottom:.25rem}
+.kv .v{font-size:.92rem;word-break:break-all;color:var(--cream)}
+.factor{display:flex;justify-content:space-between;align-items:baseline;padding:.65rem 0;border-bottom:1px solid #26241f;gap:1rem}
+.factor:last-child{border-bottom:none}
+.f-name{font-size:.92rem}
+.f-detail{color:var(--muted);font-size:.78rem;margin-top:.15rem}
+.badge{flex-shrink:0;font-size:.75rem;padding:.2rem .6rem;border-radius:20px;font-weight:600}
+.b-safe{background:rgba(143,191,127,.15);color:var(--green)}
+.b-warn{background:rgba(201,169,98,.15);color:var(--gold)}
+.b-bad{background:rgba(217,108,95,.15);color:var(--red)}
+.loading{color:var(--muted);text-align:center;padding:3rem 0}
+footer{text-align:center;color:var(--muted);font-size:.75rem;margin-top:2rem}
+footer b{color:var(--gold)}
+@media(max-width:520px){.score-num{font-size:3rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Who<span>AmI</span> · Fingerprint</h1>
+  <p class="sub">Browser fingerprint &amp; privacy / proxy-detection score</p>
+  <div class="loading" id="loading">Analyzing your connection…</div>
+  <div id="content" style="display:none">
+
+    <div class="card score-wrap">
+      <h2>Privacy Risk Score</h2>
+      <div class="score-num" id="score">–</div>
+      <div class="score-label" id="scoreLabel"></div>
+      <div class="bar"><div id="scoreBar" style="width:0%"></div></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="card">
+      <h2>Score Breakdown</h2>
+      <div id="factors"></div>
+    </div>
+
+    <div class="card">
+      <h2>Your Connection — IP Details</h2>
+      <div class="kv" style="margin-bottom:1rem"><div class="k">IP Address</div><div class="v" id="ip" style="font-size:1.15rem;font-weight:600"></div></div>
+      <table class="iptable">
+        <tr><td class="k">IP Type</td><td id="iptype"></td></tr>
+        <tr><td class="k">Country</td><td id="country"></td></tr>
+        <tr><td class="k">Capital</td><td id="capital"></td></tr>
+        <tr><td class="k">Continent</td><td id="continent"></td></tr>
+        <tr><td class="k">Region / State</td><td id="region"></td></tr>
+        <tr><td class="k">City</td><td id="city"></td></tr>
+        <tr><td class="k">ZIP / Postal Code</td><td id="postal"></td></tr>
+        <tr><td class="k">Full Address (approx.)</td><td id="fulladdr"></td></tr>
+        <tr><td class="k">Coordinates (lat, lon)</td><td id="coords"></td></tr>
+        <tr><td class="k">ISP</td><td id="isptd"></td></tr>
+        <tr><td class="k">Organization</td><td id="org"></td></tr>
+        <tr><td class="k">ASN</td><td id="asn"></td></tr>
+        <tr><td class="k">Timezone (IP)</td><td id="iptz2"></td></tr>
+        <tr><td class="k">Calling Code</td><td id="ccode"></td></tr>
+        <tr><td class="k">Currency</td><td id="currency"></td></tr>
+        <tr><td class="k">VPN / Proxy Detected</td><td id="vpn"></td></tr>
+      </table>
+      <a id="maplink" href="#" target="_blank" style="display:inline-block;margin-top:.8rem;color:var(--gold2);font-size:.85rem">📍 Show IP location on OpenStreetMap →</a>
+    </div>
+
+    <div class="card">
+      <h2>Browser &amp; Device</h2>
+      <div class="grid">
+        <div class="kv"><div class="k">Browser / OS</div><div class="v" id="ua"></div></div>
+        <div class="kv"><div class="k">Language</div><div class="v" id="lang"></div></div>
+        <div class="kv"><div class="k">Timezone (browser)</div><div class="v" id="tz"></div></div>
+        <div class="kv"><div class="k">Timezone (IP)</div><div class="v" id="iptz"></div></div>
+        <div class="kv"><div class="k">Screen</div><div class="v" id="screen"></div></div>
+        <div class="kv"><div class="k">Do Not Track</div><div class="v" id="dnt"></div></div>
+        <div class="kv"><div class="k">WebRTC Leak</div><div class="v" id="webrtc"></div></div>
+        <div class="kv"><div class="k">Device</div><div class="v" id="device"></div></div>
+        <div class="kv"><div class="k">CPU Cores</div><div class="v" id="cores"></div></div>
+        <div class="kv"><div class="k">RAM</div><div class="v" id="ram"></div></div>
+        <div class="kv"><div class="k">GPU / Renderer</div><div class="v" id="gpu"></div></div>
+        <div class="kv"><div class="k">Battery</div><div class="v" id="battery"></div></div>
+        <div class="kv"><div class="k">Touch Support</div><div class="v" id="touch"></div></div>
+        <div class="kv"><div class="k">Canvas Fingerprint</div><div class="v" id="canvas"></div>
+      </div>
+    </div>
+
+    <footer>Powered by <b>Atlas Books</b> tunnel · data sources: ipwho.is / ip-api.com</footer>
+  </div>
+</div>
+<script>
+function canvasHash(){
+  try{
+    const c=document.createElement('canvas');c.width=220;c.height=60;
+    const x=c.getContext('2d');x.textBaseline='top';x.font="16px 'Arial'";
+    x.fillStyle='#c9a962';x.fillRect(0,0,220,60);
+    x.fillStyle='#1a1a1a';x.fillText('fingerprint \u2713 \ud83d\udd12',4,18);
+    x.fillStyle='rgba(240,233,216,.6)';x.fillText('whoami.miors.art',6,40);
+    x.beginPath();x.arc(190,30,18,0,6.3);x.strokeStyle='#f0e9d8';x.stroke();
+    const h=hash(c.toDataURL());return h;
+  }catch(e){return 'unavailable'}
+}
+function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0}return '0x'+((h>>>0).toString(16).toUpperCase().padStart(8,'0'))+' (lightweight)'}
+function parseUA(ua){
+  let b='Unknown',o='Unknown';
+  if(/Edg\//.test(ua))b='Edge';else if(/OPR|Opera/.test(ua))b='Opera';else if(/Firefox\//.test(ua))b='Firefox';
+  else if(/Chrome\//.test(ua))b='Chrome';else if(/Safari\//.test(ua))b='Safari';
+  if(/Windows/.test(ua))o='Windows';else if(/Android/.test(ua))o='Android';else if(/iPhone|iPad/.test(ua))o='iOS';
+  else if(/Mac OS X/.test(ua))o='macOS';else if(/Linux/.test(ua))o='Linux';
+  return b+' on '+o;
+}
+function send(api,headers){
+  return fetch('/api/info',{headers:headers}).then(r=>r.json());
+}
+(async()=>{
+  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+  const scr=window.screen.width+'x'+window.screen.height+' @'+(window.devicePixelRatio||1)+'x, '+window.screen.colorDepth+'-bit';
+  const canvas=canvasHash();
+  // WebRTC leak probe
+  let webrtcReal='';
+  try{
+    const p=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    p.createDataChannel('x');
+    const ip=await new Promise(res=>{
+      const t=setTimeout(()=>res(''),2500);
+      p.onicecandidate=e=>{
+        if(e.candidate){const m=/([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
+          if(m && !/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.)/.test(m[1])){clearTimeout(t);res(m[1])}}
+        else res('');
+      };
+      p.createOffer().then(o=>p.setLocalDescription(o));
+    });
+    webrtcReal=ip;p.close();
+  }catch(e){}
+  const dnt=(navigator.doNotTrack==='1'||window.doNotTrack==='1')?'1':'';
+  // Hardware info
+  const cores=navigator.hardwareConcurrency?navigator.hardwareConcurrency+' cores':'Hidden/unsupported';
+  const ram=navigator.deviceMemory?navigator.deviceMemory+' GB (approx)':'Hidden/unsupported';
+  const plat=navigator.platform||'Unknown';
+  const touch=('ontouchstart' in window||navigator.maxTouchPoints>0)?('Yes — '+navigator.maxTouchPoints+' touch points'):'No';
+  const mobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'📱 Mobile':'💻 Desktop';
+  let gpu='Hidden/unsupported';
+  let battery='Hidden/unsupported';
+  try{
+    const gl=document.createElement('canvas').getContext('webgl');
+    const dbg=gl.getExtension('WEBGL_debug_renderer_info');
+    if(dbg)gpu=gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+    else gpu=gl.getParameter(gl.RENDERER);
+  }catch(e){}
+  try{
+    navigator.getBattery().then(b=>{
+      const el=document.getElementById('battery');
+      el.textContent=Math.round(b.level*100)+'% '+(b.charging?'(charging ⚡)':'(discharging)');
+      if(!b.charging&&b.level<1)el.style.color='var(--gold)';
+    });
+  }catch(e){}
+  let data={};
+  try{
+    data=await send('/api/info',{
+      'X-Client-Timezone':tz,'X-Client-Screen':scr,'X-Client-Canvas':canvas,
+      'X-Client-Webrtc-Real-Ip':webrtcReal||'none','X-Client-Webrtc-Ip':webrtcReal||'none'
+    });
+  }catch(e){document.getElementById('loading').textContent='Error contacting the API.';return}
+  const g=data.geo,c=data.client;
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').style.display='block';
+  document.getElementById('score').textContent=data.score;
+  document.getElementById('scoreBar').style.width=Math.max(data.score,3)+'%';
+  document.getElementById('scoreLabel').textContent=data.score<20?'Low risk — looks like a normal connection':
+    data.score<45?'Moderate risk — some inconsistencies detected':
+    data.score<70?'High risk — likely proxy/VPN usage':'Very high — strongly flagged as proxy/VPN';
+  const v=document.getElementById('verdict');
+  const vpn=!!(g.hosting||g.proxy_flag||data.factors.some(f=>f.risk>=30));
+  v.textContent=vpn?'⚠ Proxy / VPN usage likely detected':'✓ No strong proxy indicators';
+  v.style.color=vpn?'var(--gold)':'var(--green)';
+  document.getElementById('ip').textContent=data.ip;
+  const F=(id,v)=>{const el=document.getElementById(id);el.textContent=v||'—'};
+  F('country',[g.flag,(g.country||'?')+(g.country_code?' ('+g.country_code+')':'')].filter(Boolean).join(' '));
+  F('iptype',g.iptype);
+  F('capital',g.capital);
+  F('continent',g.continent);
+  F('region',g.region+(g.region_code?' ('+g.region_code+')':''));
+  F('city',g.city);
+  F('postal',g.postal);
+  F('fulladdr',[[g.postal,g.city,g.region].filter(Boolean).join(', '),g.country].filter(Boolean).join(' — '));
+  F('coords',(g.latitude!=null&&g.longitude!=null)?g.latitude.toFixed(4)+', '+g.longitude.toFixed(4):'');
+  F('isptd',g.isp);
+  F('org',g.org);
+  F('asn',g.asn?'AS'+g.asn:'');
+  F('iptz2',g.timezone);
+  F('ccode',g.calling_code?'+'+g.calling_code:'');
+  F('currency',g.currency);
+  const ml=document.getElementById('maplink');
+  if(g.latitude!=null&&g.longitude!=null)ml.href='https://www.openstreetmap.org/?mlat='+g.latitude+'&mlon='+g.longitude+'#map=11/'+g.latitude+'/'+g.longitude;
+  else ml.style.display='none';
+  const vpnEl=document.getElementById('vpn');
+  vpnEl.textContent=vpn?'Yes'+(g.proxy_flag?' (flagged)':' (datacenter ISP)')+(vpn&&webrtcReal&&webrtcReal!==data.ip?' + WebRTC shows real IP':''):'No';
+  vpnEl.style.color=vpn?'var(--red)':'var(--green)';
+  document.getElementById('ua').textContent=parseUA(c.ua)+' — '+c.ua;
+  document.getElementById('lang').textContent=c.language||'Unknown';
+  document.getElementById('tz').textContent=tz||'Unknown';
+  document.getElementById('iptz').textContent=g.timezone||'Unknown';
+  document.getElementById('screen').textContent=c.screen||scr;
+  document.getElementById('dnt').textContent=c.dnt==='1'?'Enabled (DNT: 1)':'Not set';
+  const wEl=document.getElementById('webrtc');
+  wEl.textContent=c.webrtc_leak?('LEAK — real IP visible: '+c.webrtc_leak):'No leak detected';
+  wEl.style.color=c.webrtc_leak?'var(--red)':'var(--green)';
+  document.getElementById('canvas').textContent=c.canvas||canvas;
+  document.getElementById('device').textContent=mobile+' — '+plat;
+  document.getElementById('cores').textContent=cores;
+  document.getElementById('ram').textContent=ram;
+  document.getElementById('gpu').textContent=gpu;
+  document.getElementById('touch').textContent=touch;
+  const fx=document.getElementById('factors');
+  fx.innerHTML='';
+  for(const f of data.factors){
+    const cls=f.risk>=25?'b-bad':f.risk>0?'b-warn':'b-safe';
+    const lbl=f.risk>=25?'HIGH RISK +'+f.risk:f.risk>0?'MINOR +'+f.risk:'OK +0';
+    fx.insertAdjacentHTML('beforeend',
+      `<div class="factor"><div><div class="f-name">${f.name}</div><div class="f-detail">${f.detail||''}</div></div><span class="badge ${cls}">${lbl}</span></div>`);
+  }
+})();
+</script>
+</body>
+</html>
