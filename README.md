@@ -1,6 +1,6 @@
 # WhoAmI — Browser Fingerprint & Privacy Score
 
-Live demo: **https://mehrvarz24.github.io/whoami-fingerprint/**
+Live demo: **https://mehrvarz24.github.io/whoami/**
 
 Also running at: https://whoami.miors.art
 
